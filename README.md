@@ -33,6 +33,33 @@ make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \
                     EXTRA_LDFLAGS="-L/example/leveldb/build -lsnappy"
 ```
 
+Build Snappy
+
+```
+git clone https://github.com/google/snappy.git
+cd snappy
+git submodule update --init
+git checkout 1.1.9
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ../
+make
+```
+
+FIX cmakefile
+```
+# 之前添加依赖
+link_directories("/home/someone/project/snappy/build")
+include_directories("/home/someone/project/snappy" "/home/someone/project/snappy/build")
+check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
+# 之后强制开启HAVE_SNAPPY
+set(HAVE_SNAPPY ON)
+```
+
+In My Project, just run:
+```
+make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \ EXTRA_LDFLAGS="-I/example/leveldb/include -L/example/snappy/build -L/example/leveldb/build -lsnappy -lleveldb"
+```
+
 Or modify config section in `Makefile`.
 
 RocksDB build example:

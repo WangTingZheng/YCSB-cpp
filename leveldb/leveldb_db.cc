@@ -42,6 +42,9 @@ namespace {
   const std::string PROP_FILTER_BITS = "leveldb.filter_bits";
   const std::string PROP_FILTER_BITS_DEFAULT = "0";
 
+  const std::string PROP_BF_ADJUSTMENT = "leveldb.bloom_filter_adjustment";
+  const std::string PROP_BF_ADJUSTMENT_DEFAULT = "true";
+
   const std::string PROP_BLOCK_SIZE = "leveldb.block_size";
   const std::string PROP_BLOCK_SIZE_DEFAULT = "0";
 
@@ -158,6 +161,11 @@ void LeveldbDB::GetOptions(const utils::Properties &props, leveldb::Options *opt
   if (filter_bits > 0) {
     opt->filter_policy = leveldb::NewBloomFilterPolicy(filter_bits);
   }
+
+  if (props.GetProperty(PROP_BF_ADJUSTMENT, PROP_BF_ADJUSTMENT_DEFAULT) == "false"){
+    opt->bloom_filter_adjustment = false;
+  }
+
   int block_size = std::stoi(props.GetProperty(PROP_BLOCK_SIZE,
                                                PROP_BLOCK_SIZE_DEFAULT)); 
   if (block_size > 0) {
