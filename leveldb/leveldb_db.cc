@@ -13,6 +13,7 @@
 
 #include <leveldb/options.h>
 #include <leveldb/write_batch.h>
+#include <leveldb/save_read_io.h>
 
 namespace {
   const std::string PROP_NAME = "leveldb.dbname";
@@ -47,6 +48,9 @@ namespace {
 
   const std::string PROP_USING_DIRECT_IO = "leveldb.using_direct_io";
   const std::string PROP_USING_DIRECT_IO_DEFAULT = "false";
+  
+  const std::string PROP_SAVE_READ_IO = "leveldb.save_read_io";
+  const std::string PROP_SAVE_READ_IO_DEFAULT = "false";
 
   const std::string PROP_BLOCK_SIZE = "leveldb.block_size";
   const std::string PROP_BLOCK_SIZE_DEFAULT = "0";
@@ -60,6 +64,7 @@ namespace ycsbc {
 leveldb::DB *LeveldbDB::db_ = nullptr;
 int LeveldbDB::ref_cnt_ = 0;
 std::mutex LeveldbDB::mu_;
+leveldb::SaveReadIO *io_saver_ = nullptr;
 
 void LeveldbDB::Init() {
   const std::lock_guard<std::mutex> lock(mu_);
@@ -118,6 +123,9 @@ void LeveldbDB::Init() {
     }
   }
   s = leveldb::DB::Open(opt, db_path, &db_);
+  if(io_saver_ != nullptr){
+    io_saver_->StartRead();
+  }
   if (!s.ok()) {
     throw utils::Exception(std::string("LevelDB Open: ") + s.ToString());
   }
@@ -127,6 +135,9 @@ void LeveldbDB::Cleanup() {
   const std::lock_guard<std::mutex> lock(mu_);
   if (--ref_cnt_) {
     return;
+  }
+  if(io_saver_ != nullptr){
+    fprintf(stderr, "io during this operator is %d\n", io_saver_->GetReadIONumber());
   }
   delete db_;
 }
@@ -171,6 +182,11 @@ void LeveldbDB::GetOptions(const utils::Properties &props, leveldb::Options *opt
 
   if (props.GetProperty(PROP_USING_DIRECT_IO, PROP_USING_DIRECT_IO_DEFAULT) == "true"){
     opt->using_direct_io = true;
+  }
+
+  if (props.GetProperty(PROP_SAVE_READ_IO, PROP_SAVE_READ_IO_DEFAULT) == "true"){
+    io_saver_ = new leveldb::SaveReadIO(opt->env);
+    opt->env = io_saver_->GetEnv();
   }
 
   int block_size = std::stoi(props.GetProperty(PROP_BLOCK_SIZE,
