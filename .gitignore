@@ -12,3 +12,5 @@ cmake-build-debug
 .vscode
 .idea
 build
+build.sh
+rate_trace.txt

@@ -47,11 +47,9 @@ make
 
 FIX cmakefile
 ```
-# 之前添加依赖
 link_directories("/home/someone/project/snappy/build")
 include_directories("/home/someone/project/snappy" "/home/someone/project/snappy/build")
 check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
-# 之后强制开启HAVE_SNAPPY
 set(HAVE_SNAPPY ON)
 ```
 

@@ -45,6 +45,9 @@ namespace {
   const std::string PROP_BF_ADJUSTMENT = "leveldb.bloom_filter_adjustment";
   const std::string PROP_BF_ADJUSTMENT_DEFAULT = "true";
 
+  const std::string PROP_USING_DIRECT_IO = "leveldb.using_direct_io";
+  const std::string PROP_USING_DIRECT_IO_DEFAULT = "false";
+
   const std::string PROP_BLOCK_SIZE = "leveldb.block_size";
   const std::string PROP_BLOCK_SIZE_DEFAULT = "0";
 
@@ -164,6 +167,10 @@ void LeveldbDB::GetOptions(const utils::Properties &props, leveldb::Options *opt
 
   if (props.GetProperty(PROP_BF_ADJUSTMENT, PROP_BF_ADJUSTMENT_DEFAULT) == "false"){
     opt->bloom_filter_adjustment = false;
+  }
+
+  if (props.GetProperty(PROP_USING_DIRECT_IO, PROP_USING_DIRECT_IO_DEFAULT) == "true"){
+    opt->using_direct_io = true;
   }
 
   int block_size = std::stoi(props.GetProperty(PROP_BLOCK_SIZE,
