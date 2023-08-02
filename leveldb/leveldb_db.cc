@@ -13,7 +13,7 @@
 
 #include <leveldb/options.h>
 #include <leveldb/write_batch.h>
-#include <leveldb/save_read_io.h>
+#include <leveldb/io_saver.h>
 
 namespace {
   const std::string PROP_NAME = "leveldb.dbname";
@@ -64,7 +64,7 @@ namespace ycsbc {
 leveldb::DB *LeveldbDB::db_ = nullptr;
 int LeveldbDB::ref_cnt_ = 0;
 std::mutex LeveldbDB::mu_;
-leveldb::SaveReadIO *io_saver_ = nullptr;
+leveldb::IOSaver *io_saver_ = nullptr;
 
 void LeveldbDB::Init() {
   const std::lock_guard<std::mutex> lock(mu_);
@@ -185,7 +185,7 @@ void LeveldbDB::GetOptions(const utils::Properties &props, leveldb::Options *opt
   }
 
   if (props.GetProperty(PROP_SAVE_READ_IO, PROP_SAVE_READ_IO_DEFAULT) == "true"){
-    io_saver_ = new leveldb::SaveReadIO(opt->env);
+    io_saver_ = new leveldb::IOSaver(opt->env);
     opt->env = io_saver_->GetEnv();
   }
 
