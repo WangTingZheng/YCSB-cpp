@@ -57,11 +57,15 @@ namespace {
 
   const std::string PROP_BLOCK_RESTART_INTERVAL = "leveldb.block_restart_interval";
   const std::string PROP_BLOCK_RESTART_INTERVAL_DEFAULT = "0";
+  
+  const std::string PROP_ZERO_LOOKUP_RATE = "leveldb.zero_lookup_rate";
+  const std::string PROP_ZERO_LOOKUP_RATE_DEFAULT = "0";
 } // anonymous
 
 namespace ycsbc {
 
 leveldb::DB *LeveldbDB::db_ = nullptr;
+double zero_lookup_rate = 0;
 int LeveldbDB::ref_cnt_ = 0;
 std::mutex LeveldbDB::mu_;
 leveldb::IOSaver *io_saver_ = nullptr;
@@ -199,6 +203,14 @@ void LeveldbDB::GetOptions(const utils::Properties &props, leveldb::Options *opt
   if (block_restart_interval > 0) {
     opt->block_restart_interval = block_restart_interval;
   }
+
+  zero_lookup_rate = std::stod(props.GetProperty(PROP_ZERO_LOOKUP_RATE,
+                                                PROP_ZERO_LOOKUP_RATE_DEFAULT));
+  if (zero_lookup_rate < 0) {
+    zero_lookup_rate = 0;
+  }else if(zero_lookup_rate > 1){
+    zero_lookup_rate = 1;
+  }
 }
 
 void LeveldbDB::SerializeRow(const std::vector<Field> &values, std::string *data) {
@@ -279,15 +291,35 @@ std::string LeveldbDB::FieldFromCompKey(const std::string &comp_key) {
   return comp_key.substr(idx + 1);
 }
 
+bool IsExistedKey() {
+    srand(time(0));
+    
+    int randomNumber = rand();
+    
+    if (randomNumber < RAND_MAX * zero_lookup_rate) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 DB::Status LeveldbDB::ReadSingleEntry(const std::string &table, const std::string &key,
                                       const std::vector<std::string> *fields,
                                       std::vector<Field> &result) {
   std::string data;
-  leveldb::Status s = db_->Get(leveldb::ReadOptions(), key, &data);
-  if (s.IsNotFound()) {
-    return kNotFound;
-  } else if (!s.ok()) {
-    throw utils::Exception(std::string("LevelDB Get: ") + s.ToString());
+  std::string real_key = key;
+  bool non_existed = IsExistedKey();
+  if(non_existed){
+    real_key += ".missing";
+  }
+
+  leveldb::Status s = db_->Get(leveldb::ReadOptions(), real_key, &data);
+  if(!non_existed){
+    if (s.IsNotFound()) {
+      return kNotFound;
+    } else if (!s.ok()) {
+      throw utils::Exception(std::string("LevelDB Get: ") + s.ToString());
+    }
   }
   if (fields != nullptr) {
     DeserializeRowFilter(&result, data, *fields);
