@@ -48,11 +48,16 @@ make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \ EXTRA_LDFLAGS="-
 set rate in ``limit.file``, just like this:
 
 ```shell
-20 288
-30 292
-40 368
-50 335
-60 242
+10 1000
+20 1000
+30 1000
+40 1000
+50 1000
+60 1000
+70 1000
+80 1000
+90 1000
+100 1000
 ```
 
 20 stand for run 20 second, 288 stands for run 288 get in one second
