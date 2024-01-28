@@ -45,7 +45,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ../
 make
 ```
 
-FIX cmakefile
+add snappy path to cmakefile
 ```
 link_directories("/home/someone/project/snappy/build")
 include_directories("/home/someone/project/snappy" "/home/someone/project/snappy/build")
@@ -56,6 +56,12 @@ set(HAVE_SNAPPY ON)
 In My Project, just run:
 ```
 make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \ EXTRA_LDFLAGS="-I/example/leveldb/include -L/example/snappy/build -L/example/leveldb/build -lsnappy -lleveldb"
+```
+
+if not use snappy, just run:
+
+```shell
+make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \ EXTRA_LDFLAGS="-I/example/leveldb/include -L/example/leveldb/build -lleveldb"
 ```
 
 Or modify config section in `Makefile`.
