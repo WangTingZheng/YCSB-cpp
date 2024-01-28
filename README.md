@@ -1,39 +1,24 @@
 # YCSB-cpp
 
-Yahoo! Cloud Serving Benchmark([YCSB](https://github.com/brianfrankcooper/YCSB/wiki)) written in C++.
-This is a fork of [YCSB-C](https://github.com/basicthinker/YCSB-C) with some additions
+## Build
 
- * Tail latency report using [HdrHistogram_c](https://github.com/HdrHistogram/HdrHistogram_c)
- * Modified the workload more similar to the original YCSB
- * Supported databases: LevelDB, RocksDB, LMDB, WiredTiger, SQLite
+build ycsb-cpp with cmake
 
-# Build YCSB-cpp
-
-## Build with Makefile on POSIX
-
-Initialize submodule and use `make` to build.
-
-```
+```shell
 git clone https://github.com/ls4154/YCSB-cpp.git
 cd YCSB-cpp
 git submodule update --init
-make
 ```
-
-Databases to bind must be specified as build options. You may also need to add additional link flags (e.g., `-lsnappy`).
 
 To bind LevelDB:
-```
-make BIND_LEVELDB=1
+
+```shell
+make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \ EXTRA_LDFLAGS="-I/example/leveldb/include -L/example/leveldb/build -lleveldb"
 ```
 
-To build with additional libraries and include directories:
-```
-make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \
-                    EXTRA_LDFLAGS="-L/example/leveldb/build -lsnappy"
-```
+## Use Snappy
 
-Build Snappy
+download and build snappy
 
 ```
 git clone https://github.com/google/snappy.git
@@ -53,60 +38,47 @@ check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
 set(HAVE_SNAPPY ON)
 ```
 
-In My Project, just run:
-```
+make
+```shell
 make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \ EXTRA_LDFLAGS="-I/example/leveldb/include -L/example/snappy/build -L/example/leveldb/build -lsnappy -lleveldb"
 ```
 
-if not use snappy, just run:
+## Rate limit
+
+set rate in ``limit.file``, just like this:
 
 ```shell
-make BIND_LEVELDB=1 EXTRA_CXXFLAGS=-I/example/leveldb/include \ EXTRA_LDFLAGS="-I/example/leveldb/include -L/example/leveldb/build -lleveldb"
+20 288
+30 292
+40 368
+50 335
+60 242
 ```
 
-Or modify config section in `Makefile`.
+20 stand for run 20 second, 288 stands for run 288 get in one second
 
-RocksDB build example:
-```
-EXTRA_CXXFLAGS ?= -I/example/rocksdb/include
-EXTRA_LDFLAGS ?= -L/example/rocksdb -ldl -lz -lsnappy -lzstd -lbz2 -llz4
-
-BIND_ROCKSDB ?= 1
-```
-
-## Build with CMake on POSIX
+use ``limit.ops`` to set initial rate, all command just like this:
 
 ```shell
-git submodule update --init
-mkdir build
-cd build
-cmake -DBIND_ROCKSDB=1 -DBIND_WIREDTIGER=1 -DBIND_LMDB=1 -DBIND_LEVELDB=1 -DWITH_SNAPPY=1 -DWITH_LZ4=1 -DWITH_ZSTD=1 ..
-make
+./ycsb -run -db basic -P workloads/workloada  -p threadcount=4 -p basic.silent=true -p limit.ops=100 -p limit.file=rate_trace.txt -s
 ```
 
-## Build with CMake+vcpkg on Windows
+run result just like this:
 
-see [BUILD_ON_WINDOWS](BUILD_ON_WINDOWS.md)
-
-## Running
-
-Load data with leveldb:
-```
-./ycsb -load -db leveldb -P workloads/workloada -P leveldb/leveldb.properties -s
-```
-
-Run workload A with leveldb:
-```
-./ycsb -run -db leveldb -P workloads/workloada -P leveldb/leveldb.properties -s
-```
-
-Load and run workload B with rocksdb:
-```
-./ycsb -load -run -db rocksdb -P workloads/workloadb -P rocksdb/rocksdb.properties -s
-```
-
-Pass additional properties:
-```
-./ycsb -load -db leveldb -P workloads/workloadb -P rocksdb/rocksdb.properties \
-    -p threadcount=4 -p recordcount=10000000 -p leveldb.cache_size=134217728 -s
+```shell
+2024-01-28 19:34:32 0 sec: 0 operations;
+2024-01-28 19:34:42 10 sec: 1000 operations; [READ: Count=528 Max=26.86 Min=0.46 Avg=5.41 90=9.92 99=25.81 99.9=26.82 99.99=26.86] [UPDATE: Count=472 Max=30.32 Min=0.49 Avg=6.16 90=12.48 99=27.54 99.9=30.32 99.99=30.32]
+2024-01-28 19:34:52 20 sec: 11049 operations; [READ: Count=5592 Max=55.42 Min=0.04 Avg=6.03 90=12.68 99=23.01 99.9=27.74 99.99=41.63] [UPDATE: Count=5457 Max=30.32 Min=0.08 Avg=6.39 90=12.80 99=23.33 99.9=28.18 99.99=29.95]
+2024-01-28 19:35:02 30 sec: 21149 operations; [READ: Count=10609 Max=55.42 Min=0.04 Avg=5.73 90=12.54 99=22.62 99.9=27.74 99.99=41.63] [UPDATE: Count=10540 Max=30.32 Min=0.08 Avg=6.18 90=12.71 99=23.21 99.9=27.54 99.99=30.27]
+2024-01-28 19:35:12 40 sec: 31249 operations; [READ: Count=15593 Max=184.32 Min=0.04 Avg=6.40 90=16.70 99=30.73 99.9=51.39 99.99=66.43] [UPDATE: Count=15656 Max=174.59 Min=0.08 Avg=7.03 90=17.20 99=31.63 99.9=61.09 99.99=132.61]
+2024-01-28 19:35:22 50 sec: 41349 operations; [READ: Count=20618 Max=184.32 Min=0.04 Avg=5.57 90=12.58 99=30.37 99.9=49.05 99.99=66.43] [UPDATE: Count=20731 Max=174.59 Min=0.08 Avg=6.17 90=12.80 99=31.09 99.9=55.55 99.99=132.61]
+2024-01-28 19:35:32 60 sec: 51449 operations; [READ: Count=25622 Max=184.32 Min=0.04 Avg=5.19 90=12.35 99=30.00 99.9=46.05 99.99=63.87] [UPDATE: Count=25827 Max=174.59 Min=0.08 Avg=5.82 90=12.45 99=30.59 99.9=55.39 99.99=124.67]
+2024-01-28 19:35:42 70 sec: 61574 operations; [READ: Count=30607 Max=184.32 Min=0.04 Avg=5.18 90=12.35 99=29.31 99.9=43.68 99.99=63.87] [UPDATE: Count=30967 Max=174.59 Min=0.08 Avg=5.75 90=12.40 99=30.06 99.9=54.81 99.99=124.67]
+2024-01-28 19:35:52 80 sec: 71674 operations; [READ: Count=35604 Max=184.32 Min=0.04 Avg=5.21 90=12.37 99=26.98 99.9=41.89 99.99=62.69] [UPDATE: Count=36070 Max=174.59 Min=0.08 Avg=5.78 90=12.42 99=27.87 99.9=54.62 99.99=124.09]
+2024-01-28 19:36:02 90 sec: 81774 operations; [READ: Count=40717 Max=184.32 Min=0.04 Avg=5.24 90=12.38 99=25.92 99.9=40.83 99.99=62.69] [UPDATE: Count=41057 Max=174.59 Min=0.08 Avg=5.81 90=12.44 99=26.93 99.9=53.28 99.99=124.09]
+2024-01-28 19:36:12 100 sec: 91924 operations; [READ: Count=45772 Max=184.32 Min=0.04 Avg=5.15 90=12.38 99=29.17 99.9=40.29 99.99=62.69] [UPDATE: Count=46152 Max=174.59 Min=0.08 Avg=5.67 90=12.39 99=29.60 99.9=51.45 99.99=123.26]
+2024-01-28 19:36:20 108 sec: 100000 operations; [READ: Count=49762 Max=184.32 Min=0.04 Avg=4.96 90=12.28 99=28.25 99.9=39.74 99.99=62.69] [UPDATE: Count=50238 Max=174.59 Min=0.08 Avg=5.47 90=12.25 99=28.00 99.9=48.54 99.99=123.26]
+Run runtime(sec): 108.089
+Run operations(ops): 100000
+Run throughput(ops/sec): 925.164
 ```
